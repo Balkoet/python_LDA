@@ -1,0 +1,78 @@
+#!pip install tomotopy !pip install requests !pip install nltk
+
+# Import
+import tomotopy as tp
+from sklearn.datasets import fetch_20newsgroups
+import nltk
+nltk.download('stopwords')
+nltk.download('punkt_tab')
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+import random
+
+# Fortosi dataset
+print("Fetching the dataset...")
+newsgroups = fetch_20newsgroups(subset='all', remove=('headers', 'footers', 'quotes'))
+documents = [doc for doc in newsgroups.data if len(doc.split()) > 50]  # Filter small documents
+
+
+
+# Save se txt
+print("Saving dataset to 'documents.txt'...")
+with open("documents.txt", "w", encoding="utf-8") as f:
+    for doc in documents:
+        f.write(doc.replace("\n", " ") + "\n")  # Replace line breaks within a document
+
+print(f"Dataset saved! Total documents: {len(documents)}")
+
+#check oti ta docs einai opws prepei
+print("First document:")
+print(documents[0])
+
+
+print("Running LDA topic modeling...")
+
+# Ftiaxnoume to modelo
+lda_model = tp.LDAModel(k=10)  #  edw allazeis to k (ari8mos topics) kai peiramatizesai
+
+#ka8arismos me stopwords
+stop_words = stopwords.words('english') # lista exairesewn
+stop_words += ['could','would','also','said', 'is', 'the', 'i', 'or', 'and', 'in', 'was', 'of', 'to', 'that', 'a', 'on'] #lista exairesewn
+clean_docs=[]
+
+for doc in documents: # for each doc
+  selected_words=[]
+  words=word_tokenize(doc.lower()) # split doc to words
+  for word in words: # for each word
+    if word.isalpha() and len(word) > 1 and word not in stop_words: # elegxos an einai alfari8mitiko me mikos megalitero apo 1 kai den einai stin lista exairesewn
+      selected_words.append(word) # epilogi tis lexis
+  clean_docs.append(selected_words) # xrisi twn epilegmenwn lexewn
+
+# vazoume ta docs sto montelo
+for doc in clean_docs:
+    lda_model.add_doc(doc)
+
+# to ekpaidevoume
+print("Training the model...")
+for i in range(100):
+    lda_model.train(10)  # Train for 10 iterations
+    if i % 10 == 0:  # Print progress every 10 iterations
+        print(f"Iteration: {i}, Log-Likelihood: {lda_model.ll_per_word}")
+
+# Deixoume ta topics
+print("\nTop words per topic:")
+for topic_id in range(lda_model.k):
+    top_words = lda_model.get_topic_words(topic_id, top_n=10)
+    print('Topic', topic_id)
+    for word in top_words:
+        print(word)
+    print('///////////////////////////////')
+
+doc_position = 0  # epilegoume pio doc na analisoume
+lda_doc = lda_model.docs[doc_position]  # To pernoume apo to lda
+topic_dist = lda_doc.get_topic_dist()  # pairnoume to distribution
+print(f"Perplexity: {lda_model.perplexity}")
+print("\nTopic distribution for the first document:")
+for i, prob in enumerate(topic_dist):
+    print(f"Topic {i}: {prob:.4f}")
+
